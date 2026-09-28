@@ -3,333 +3,511 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dictionary</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <title>LiveCode Dictionary</title>
+    
+    <!-- Bootstrap 3 (matches LC IDE) -->
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.0/css/solid.min.css" rel="stylesheet">
+    
     <style>
-        /* Custom scrollbar behaviors to match classic desktop feel */
-        .custom-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
-        .custom-scroll::-webkit-scrollbar-track { background: #f1f1f1; }
-        .custom-scroll::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 4px; }
-        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
-        tr.selected { background-color: #e0f2fe !important; }
+        /* LC IDE Dictionary CSS (lcdoc.css) - exact match */
+        html { overflow-y: scroll; }
+        
+        /* Fixed white spacer at top (matching LC IDE) */
+        #lcnavbar-spacer { height: 15px; background-color: #ffffff; z-index: 200; }
+        
+        /* Navbar styling */
+        .navbar-default { 
+            background-color: #f8f8f8; 
+            border-bottom: 1px solid #e6e6e6;
+        }
+        .navbar-default .navbar-brand { color: #333; font-weight: bold; }
+        .navbar-default .navbar-nav > li > a { color: #333; }
+        .navbar-default .navbar-nav > li.active > a, 
+        .navbar-default .navbar-nav > li.active > a:hover, 
+        .navbar-default .navbar-nav > li.active > a:focus {
+            background-color: transparent;
+            color: #337ab7;
+        }
+        .navbar-default .navbar-toggle { background-color: #f8f8f8; }
+        .navbar-default .navbar-toggle .icon-bar {background-color: #333;}
+        
+        /* Sidebar styling */
+        .bs-sidebar { 
+            position: relative; 
+            width: 100%;
+        }
+        
+        /* Panel styling (LC IDE uses panel-default) */
+        .panel-default { 
+            border-color: #ddd; 
+            border-top: none;
+            margin-bottom: 15px;
+        }
+        .panel-heading { 
+            background-color: #f8f8f8; 
+            color: #333; 
+            border-bottom: 1px solid #ddd;
+            padding: 8px 15px;
+        }
+        .panel-title { 
+            margin: 0; 
+            font-size: 16px; 
+            font-weight: 500;
+        }
+        .panel-body { padding: 10px 15px; }
+        
+        /* Entry list table (matching LC IDE) */
+        #table_list_header { margin-bottom: 0; height: 30px; border-bottom: 1px solid #ddd; }
+        #table_list { margin-bottom: 20px; }
+        #table_list table { table-layout: fixed; width: 100%; }
+        #table_list table th { 
+            text-align: left;
+            vertical-align: middle;
+            background-color: #f8f8f8;
+            border-bottom: 1px solid #ddd;
+            border-top: 1px solid #ddd;
+            height: 30px;
+            padding: 0 10px;
+        }
+        #table_list table td { 
+            vertical-align: middle;
+            padding: 0 10px;
+            border-bottom: 1px solid #ddd;
+        }
+        #table_list tr:hover { background-color: #f0f0f0; }
+        #table_list tr.info { background-color: #e6f2ff; }
+        #table_list tr.active { background-color: #d9edf7; }
+        
+        /* Column widths (LC IDE: 55% | 15% | 30%) */
+        #table_list thead th:first-child,
+        #table_list tbody td:first-child { width: 55%; }
+        #table_list thead th:nth-child(2),
+        #table_list tbody td:nth-child(2) { width: 15%; }
+        #table_list thead th:nth-child(3),
+        #table_list tbody td:nth-child(3) { width: 30%; }
+        
+        /* Type badges (matching LC IDE colors) */
+        .type-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 11px;
+            font-weight: 500;
+            margin: 0 2px 0 0;
+        }
+        .badge-command { background-color: #dff0d8; color: #3c763d; }
+        .badge-function { background-color: #fcf8e3; color: #8a6d3b; }
+        .badge-property { background-color: #d9edf7; color: #31708f; }
+        .badge-constant { background-color: #f2dede; color: #a94442; }
+        
+        /* Syntax block (LC IDE style) */
+        .syntax-block {
+            background-color: #f8f9fa;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            padding: 10px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 12px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            color: #333;
+        }
+        
+        /* Example block */
+        .example-block {
+            background-color: #f8f9fa;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            padding: 10px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 12px;
+            color: #333;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        
+        /* Entry details panel */
+        #lc-entry-details {
+            margin-top: 20px;
+        }
+        .well-sm {
+            background-color: #f8f8f8;
+            border: 1px solid #ddd;
+            padding: 10px 15px;
+            margin-bottom: 15px;
+        }
+        
+        /* Filters panel */
+        #type-filters label {
+            font-size: 13px;
+            padding: 2px 0;
+            display: block;
+        }
+        
+        /* Header resizer (drag bar) */
+        #resizer {
+            position: absolute;
+            right: 0;
+            top: 0;
+            height: 100%;
+            width: 5px;
+            cursor: ew-resize;
+        }
+        
+        /* Hide unused elements */
+        #filters_options { display: none; }
     </style>
 </head>
-<body class="bg-[#f3f4f6] text-gray-800 font-sans h-screen flex flex-col overflow-hidden text-[13px]">
-
-    <!-- TOP NAVIGATION APP BAR -->
-    <header class="bg-[#f9fafb] border-b border-gray-300 flex flex-col select-none">
-        <!-- Main Tabs -->
-        <div class="flex border-b border-gray-200 text-sm">
-            <button id="tab-api" onclick="switchMainTab('api')" class="px-4 py-1.5 border-r border-gray-200 bg-white font-medium text-gray-900 border-b-2 border-b-sky-500">API</button>
-            <button id="tab-guide" onclick="switchMainTab('guide')" class="px-4 py-1.5 border-r border-gray-200 bg-[#eaeaea] text-gray-600 hover:bg-gray-100">Guide</button>
-            <div class="flex-1 bg-[#eaeaea]"></div>
-        </div>
-        
-        <!-- Controls Context Row -->
-        <div id="api-controls" class="p-2 flex items-center justify-between gap-4">
-            <div class="flex items-center gap-6">
-                <div class="flex items-center gap-1.5">
-                    <span class="text-gray-600">Choose API:</span>
-                    <select class="bg-white border border-gray-300 rounded px-2 py-0.5 text-xs focus:outline-none focus:border-sky-500">
-                        <option>LiveCode Script</option>
-                        <option>LiveCode Builder</option>
-                    </select>
-                </div>
-                <!-- Navigation History Mocks -->
-                <div class="flex items-center gap-3 text-gray-400">
-                    <button class="hover:text-gray-600 cursor-not-allowed">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
-                    </button>
-                    <button class="hover:text-gray-600 cursor-not-allowed">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-                    </button>
-                    <button class="hover:text-gray-600">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Global Search Box -->
-            <div class="flex items-center shadow-sm max-w-xs w-full">
-                <input 
-                    type="text" 
-                    id="search-input" 
-                    oninput="filterData()"
-                    placeholder="Search" 
-                    class="w-full bg-white text-gray-800 px-2 py-1 border border-gray-300 rounded-l focus:outline-none focus:border-sky-500 placeholder-gray-400"
-                />
-                <button class="bg-[#f9fafb] border border-l-0 border-gray-300 px-3 py-1 text-gray-500 rounded-r hover:bg-gray-100">
-                    <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+<body>
+    <!-- Fixed top spacer (matching LC IDE) -->
+    <div id="lcnavbar-spacer"></div>
+    
+    <!-- Fixed Top Navbar (LC IDE style) -->
+    <nav class="navbar navbar-default navbar-fixed-top" id="lcnavbar">
+        <div class="container-fluid">
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
                 </button>
+                <span class="navbar-brand">API/Library</span>
+            </div>
+            <div class="collapse navbar-collapse" id="navbar">
+                <ul class="nav navbar-nav">
+                    <li class="dropdown">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">LiveCode Script <span class="caret"></span></a>
+                        <ul class="dropdown-menu" id="library-chooser-list">
+                            <li><a href="#">LiveCode Script</a></li>
+                            <li><a href="#">LiveCode Builder</a></li>
+                            <li><a href="#">Data Grid</a></li>
+                        </ul>
+                    </li>
+                </ul>
+                <ul class="nav navbar-nav navbar-right">
+                    <li><a href="#" id="lc-nav-prev"><span aria-hidden="true" class="glyphicon glyphicon-chevron-left"></span> Previous</a></li>
+                    <li><a href="#" id="lc-nav-next">Next <span aria-hidden="true" class="glyphicon glyphicon-chevron-right"></span></a></li>
+                    <li><a href="#" id="lc-nav-history"><span aria-hidden="true" class="glyphicon glyphicon-time"></span> History</a></li>
+                </ul>
+                <form class="navbar-form navbar-right">
+                    <div class="form-group">
+                        <input type="text" class="form-control" id="lc-search" placeholder="Search..." spellcheck="false">
+                    </div>
+                    <button type="button" class="btn btn-default btn-sm"><span class="glyphicon glyphicon-search"></span></button>
+                </form>
             </div>
         </div>
-    </header>
+    </nav>
 
-    <!-- CORE WORKSPACE CONTENT PANEL -->
-    <div class="flex-1 flex overflow-hidden">
-        
-        <!-- API TAB VIEW CONTAINER -->
-        <main id="view-api" class="flex-1 flex overflow-hidden w-full">
-            <!-- LEFT COLUMN: SIDEBAR FILTERS -->
-            <aside class="w-56 bg-[#f3f4f6] border-r border-gray-300 p-4 flex flex-col select-none overflow-y-auto custom-scroll">
-                <h3 class="font-bold text-gray-700 mb-2 text-xs uppercase tracking-wider">Filters</h3>
-                
-                <div class="mb-4">
-                    <!-- Header row: displays the 'type:' label and the active pill badge -->
-                    <div class="flex items-center gap-2 mb-2 select-none">
-                        <span class="font-bold text-gray-900 uppercase tracking-wide text-[11px]">type:</span>
-                        <div id="active-type-token" class="flex items-center"></div>
+    <!-- Main Content Area (3-column layout) -->
+    <div class="container-fluid" style="margin-top: 20px;">
+        <div class="row">
+            <!-- Left Sidebar (col-md-3, matching LC IDE) -->
+            <div class="col-md-3">
+                <div class="panel panel-default" id="filters_panel" style="position: sticky; top: 70px;">
+                    <div class="panel-heading">
+                        Filters
+                        <button id="lc-clear-filter" class="btn btn-xs btn-default pull-right" style="display: none;">Clear</button>
                     </div>
-                    
-                    <!-- Links container: explicitly styled to force a left-aligned vertical stack -->
-                    <div id="type-filter-list" class="flex flex-col items-start gap-1 text-sky-600 font-medium">
-                        <!-- Text links drop here dynamically -->
-                    </div>
-                </div>
-
-                <div class="border-t border-gray-200 pt-3">
-                    <span class="block font-semibold text-gray-900 mb-1">associations:</span>
-                    <div class="space-y-1 text-sky-600 font-medium flex flex-col">
-                        <a href="#" class="hover:underline text-[12px]">animation library</a>
-                        <a href="#" class="hover:underline text-[12px]">audioclip</a>
-                        <a href="#" class="hover:underline text-[12px]">button</a>
-                        <a href="#" class="hover:underline text-[12px]">card</a>
-                        <a href="#" class="hover:underline text-[12px]">drawing library</a>
-                        <a href="#" class="hover:underline text-[12px]">json library</a>
+                    <div class="panel-body" id="filters_container">
+                        <div id="filters">none</div>
+                        
+                        <!-- Type Filters -->
+                        <h4 style="margin-top: 15px; font-size: 14px; color: #666;">Type:</h4>
+                        <div id="type-filters">
+                            <label><input type="checkbox" class="filter-checkbox" data-type="command"> Command</label><br>
+                            <label><input type="checkbox" class="filter-checkbox" data-type="function"> Function</label><br>
+                            <label><input type="checkbox" class="filter-checkbox" data-type="property"> Property</label><br>
+                        </div>
                     </div>
                 </div>
-            </aside>
+            </div>
 
-            <!-- RIGHT COMBINED PANEL: SPLIT GRID AND DETAIL VIEWS -->
-            <section class="flex-1 flex flex-col overflow-hidden bg-white">
-                
-                <!-- TOP HALF: SCROLLABLE DATA GRID TABLE -->
-                <div class="h-1/3 border-b border-gray-300 overflow-y-auto custom-scroll relative bg-white">
-                    <table class="w-full text-left border-collapse table-fixed">
-                        <thead class="bg-[#f9fafb] sticky top-0 border-b border-gray-200 shadow-sm z-10 text-sky-600 select-none">
-                            <tr>
-                                <th class="w-1/4 px-4 py-1.5 font-medium border-r border-gray-200 cursor-pointer hover:bg-gray-100">Name ▾</th>
-                                <th class="w-1/4 px-4 py-1.5 font-medium border-r border-gray-200 cursor-pointer hover:bg-gray-100">Type ▾</th>
-                                <th class="w-2/4 px-4 py-1.5 font-medium cursor-pointer hover:bg-gray-100">Syntax ▾</th>
-                            </tr>
-                        </thead>
-                        <tbody id="dictionary-table-body" class="divide-y divide-gray-100 font-mono text-[12px]">
-                            <tr>
-                                <td colspan="3" class="text-center text-gray-400 py-8 font-sans">Connecting to Supabase...</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- BOTTOM HALF: API ENTRY DOCUMENTATION SPECIFICATION -->
-                <div id="details-view" class="flex-1 overflow-y-auto p-6 custom-scroll bg-white">
-                    <div class="text-center text-gray-400 mt-12 font-sans">
-                        Select a component from the data grid above to inspect its formal parameters.
+            <!-- Main Content (col-md-9) -->
+            <div class="col-md-9">
+                <!-- Entry List Panel -->
+                <div id="lc_entry_list">
+                    <div class="panel panel-default">
+                        <div class="panel-heading">
+                            <table id="table_list_header" class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Type</th>
+                                        <th>Syntax</th>
+                                    </tr>
+                                </thead>
+                            </table>
+                        </div>
+                        <div class="panel-body" style="padding: 0;">
+                            <table class="table table-hover table-condensed" id="table_list">
+                                <tbody>
+                                    <tr>
+                                        <td colspan="3" class="text-center text-muted">Loading dictionary database...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <!-- Header resizer -->
+                        <div id="resizer"></div>
                     </div>
                 </div>
-            </section>
-        </main>
 
-        <!-- GUIDE TAB VIEW CONTAINER (MOCK) -->
-        <main id="view-guide" class="flex-1 hidden bg-white p-8 overflow-y-auto custom-scroll">
-            <h1 class="text-3xl font-bold text-gray-800 mb-4 border-b border-gray-200 pb-2">LiveCode Guides</h1>
-            <ul class="list-disc pl-6 space-y-2 text-sky-600 font-medium text-sm">
-                <li><a href="#" class="hover:underline">Introduction to LiveCode Script</a></li>
-                <li><a href="#" class="hover:underline">Programming a User Interface</a></li>
-                <li><a href="#" class="hover:underline">Error Handling And Debugging</a></li>
-                <li><a href="#" class="hover:underline">Working With Databases</a></li>
-            </ul>
-        </main>
-
+                <!-- Entry Details Panel -->
+                <div class="panel panel-default" id="lc_entry_body" style="display: none;">
+                    <div class="panel-body" id="api_entry">
+                        <div id="entry_content"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <!-- CORE LOGIC AND ENGINE SCRIPTS -->
+    <!-- Glyphicons CSS (required for LC IDE style icons) -->
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap-glyphicons.min.css" rel="stylesheet">
+    
+    <!-- jQuery and Bootstrap JS -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+    
     <script>
-        const SUPABASE_URL = 'https://bkhvrqopgxjvztwjoalr.supabase.co'; 
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJraHZycW9wZ3hqdnp0d2pvYWxyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM3OTYxODQsImV4cCI6MjA5OTM3MjE4NH0.2Dmc3PxZouIbI85IzzRbb2jn_yJPbtZUb9jYt2UuigE';
+        // === LC IDE Dictionary JavaScript Functionality ===
+        var tState = {
+            selected_api_id: 0,
+            selected_entry_index: {},
+            history: { list: [], selected_index: -1 },
+            cached_search_data: {},
+            filters: {},
+            filtered_data: [],
+            data: [],
+            sort_type: "",
+            edition: "livecode_script"
+        };
 
-        const DB = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        
-        let dictionaryData = [];
-        let activeFilterType = null;
+        // Configuration - API URL and Key
+        // The API_KEY should be set to your Supabase anon key
+        // Find it at: https://supabase.com/dashboard/project/bkhvrqopgxjvztwjoalr/settings/api
+        var LC_DICT_CONFIG = {
+            SUPABASE_URL: 'https://bkhvrqopgxjvztwjoalr.supabase.co/rest/v1',
+            API_KEY: 'YOUR_SUPABASE_ANON_KEY_HERE'
+        };
 
-        // Toggle visibility views between API Database Grid and Documentation Guides
-        function switchMainTab(targetTab) {
-            const apiBtn = document.getElementById('tab-api');
-            const guideBtn = document.getElementById('tab-guide');
-            const apiView = document.getElementById('view-api');
-            const guideView = document.getElementById('view-guide');
-            const apiControls = document.getElementById('api-controls');
-
-            if(targetTab === 'api') {
-                apiBtn.className = "px-4 py-1.5 border-r border-gray-200 bg-white font-medium text-gray-900 border-b-2 border-b-sky-500";
-                guideBtn.className = "px-4 py-1.5 border-r border-gray-200 bg-[#eaeaea] text-gray-600 hover:bg-gray-100";
-                apiView.classList.remove('hidden');
-                apiControls.classList.remove('hidden');
-                guideView.classList.add('hidden');
-            } else {
-                guideBtn.className = "px-4 py-1.5 border-r border-gray-200 bg-white font-medium text-gray-900 border-b-2 border-b-sky-500";
-                apiBtn.className = "px-4 py-1.5 border-r border-gray-200 bg-[#eaeaea] text-gray-600 hover:bg-gray-100";
-                guideView.classList.remove('hidden');
-                apiView.classList.add('hidden');
-                apiControls.classList.add('hidden');
+        $(document).ready(function(e) {
+            // Load config from meta tag if available
+            var configMeta = $('meta[name="dict-config"]');
+            if (configMeta.length > 0) {
+                try {
+                    LC_DICT_CONFIG = JSON.parse(configMeta.attr('content'));
+                } catch(e) {}
             }
-        }
+            
+            // Initialize
+            setTimeout(function() {
+                loadDictionary();
+                document.getElementById("lc_search").focus();
+            }, 100);
+        });
 
+        /**
+         * Load dictionary entries from Supabase (fallback to local data.json)
+         */
         async function loadDictionary() {
+            // First try Supabase API
             try {
-                const { data, error } = await DB
-                    .from('dictionary')
-                    .select('keyword, strict_name, syntax')
-                    .order('keyword', { ascending: true });
-
-                if (error) throw error;
+                const response = await fetch(LC_DICT_CONFIG.SUPABASE_URL + '/dictionary', {
+                    headers: {
+                        'apikey': LC_DICT_CONFIG.API_KEY,
+                        'Authorization': 'Bearer ' + LC_DICT_CONFIG.API_KEY
+                    }
+                });
                 
-                dictionaryData = data;
-                buildSidebarTypes();
-                filterData();
+                if (!response.ok) {
+                    throw new Error('HTTP ' + response.status);
+                }
+                
+                const data = await response.json();
+                tState.filtered_data = data;
+                tState.data = data;
+                renderTable(data);
+                if (data.length > 0) {
+                    selectEntry(0);
+                }
+                return;
             } catch (err) {
-                console.error("Database connection failure:", err);
-                document.getElementById('dictionary-table-body').innerHTML = `
-                    <tr><td colspan="3" class="text-red-500 text-center py-4 font-sans">Failed to sync database index.</td></tr>`;
+                console.warn('Supabase API failed, falling back to data.json:', err.message);
+            }
+            
+            // Fallback to static JSON file
+            try {
+                const response = await fetch('data.json');
+                if (!response.ok) throw new Error('HTTP ' + response.status);
+                const data = await response.json();
+                tState.filtered_data = data;
+                tState.data = data;
+                renderTable(data);
+                if (data.length > 0) {
+                    selectEntry(0);
+                }
+            } catch (err) {
+                console.error('Error loading dictionary:', err);
+                document.getElementById('table_list').innerHTML = 
+                    '<tr><td colspan="3" class="text-center text-danger py-4">' +
+                        'Error loading dictionary: ' + err.message + '</td></tr>';
             }
         }
 
-function buildSidebarTypes() {
-    const tokenContainer = document.getElementById('active-type-token');
-    const listContainer = document.getElementById('type-filter-list');
-    
-    // Scenario A: An active filter is selected -> render next to header, wipe list below
-    if (activeFilterType) {
-        tokenContainer.innerHTML = `
-            <div class="flex items-center bg-white border border-gray-300 rounded pl-2 pr-1.5 py-0.5 text-xs text-gray-800 shadow-sm max-w-[140px] select-none ml-1">
-                <span class="truncate font-sans font-medium text-[12px]">${activeFilterType.toLowerCase()}</span>
-                <button onclick="toggleTypeFilter(null)" class="text-gray-400 hover:text-red-500 font-bold font-mono ml-1.5 text-[14px] leading-none">×</button>
-            </div>
-        `;
-        listContainer.innerHTML = '';
-        return;
-    }
-    
-    tokenContainer.innerHTML = '';
-    
-    // Clean string transformations to scrub out casing or space duplication anomalies
-    const rawTypes = dictionaryData.map(item => {
-        const name = item.strict_name || 'unknown';
-        return name.trim().toLowerCase();
-    });
-    
-    // Extract unique, sorted categories
-    const uniqueTypes = [...new Set(rawTypes)].sort();
-    
-    listContainer.innerHTML = uniqueTypes.map(type => `
-        <button onclick="toggleTypeFilter('${type}')" 
-                class="block w-full text-left text-sky-600 hover:underline hover:text-sky-800 text-[12px] font-medium truncate py-0.5">
-            ${type}
-        </button>
-    `).join('');
-}
-
-        // Triggers layout update and recalculates active filter states
-        function toggleTypeFilter(type) {
-            activeFilterType = type;
-            buildSidebarTypes();
-            filterData();
-        }
-        
-        // Real-time combination filter (Left sidebar categories + Top-right text search box)
-        function filterData() {
-            const query = document.getElementById('search-input').value.toLowerCase().trim();
+        /**
+         * Render the entry table (LC IDE style)
+         */
+        function renderTable(data) {
+            const tbody = document.getElementById('table_list');
             
-            const filtered = dictionaryData.filter(item => {
-                // Enforce lowercase matching to bridge database capitalization with filter token text
-                const matchesType = !activeFilterType || 
-                    (item.strict_name && item.strict_name.trim().toLowerCase() === activeFilterType.toLowerCase());
-                    
-                const matchesSearch = !query || 
-                    item.keyword.toLowerCase().includes(query) || 
-                    (item.strict_name && item.strict_name.toLowerCase().includes(query)) ||
-                    (item.syntax && item.syntax.toLowerCase().includes(query));
-                    
-                return matchesType && matchesSearch;
-            });
-            
-            renderGridTable(filtered);
-        }
-
-        function renderGridTable(dataToRender) {
-            const tbody = document.getElementById('dictionary-table-body');
-            if (dataToRender.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="3" class="text-center text-gray-400 py-6 font-sans">No records match criteria.</td></tr>`;
+            if (!data || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-4">No matching entries found.</td></tr>';
                 return;
             }
-
-            tbody.innerHTML = dataToRender.map((item, index) => `
-                <tr onclick="displayDetails('${item.keyword}', this)" class="cursor-pointer hover:bg-gray-50 ${index % 2 === 0 ? 'bg-[#fcfdfd]' : 'bg-white'}">
-                    <td class="px-4 py-1 truncate border-r border-gray-100 font-bold text-gray-900">${item.keyword}</td>
-                    <td class="px-4 py-1 truncate border-r border-gray-100 text-gray-600">${item.strict_name || ''}</td>
-                    <td class="px-4 py-1 truncate text-gray-500">${item.syntax || ''}</td>
-                </tr>
-            `).join('');
-        }
-        
-async function displayDetails(keyword, rowElement) {
-    // 1. Visual feedback: Remove selected state from all rows, add to the current one
-    document.querySelectorAll('#dictionary-table-body tr').forEach(tr => tr.classList.remove('selected'));
-    if (rowElement) rowElement.classList.add('selected');
-
-    // 2. Get the target container panel
-    const detailsContainer = document.getElementById('details-view');
-    detailsContainer.innerHTML = '<div class="text-gray-400 font-sans animate-pulse">Querying dictionary definition schema...</div>';
-
-    try {
-        // 3. ASYNC NETWORK CALL: Fetch the full row data from Supabase cleanly
-        const { data: records, error } = await DB
-            .from('dictionary')
-            .select('*')
-            .eq('keyword', keyword)
-            .limit(1);
-
-        if (error) throw error;
-        if (!records || records.length === 0) throw new Error("Item profile record missing.");
-
-        const data = records[0];
-
-        // 4. Render the full, un-truncated syntax data parameters safely
-        detailsContainer.innerHTML = `
-            <h1 class="text-4xl font-serif font-normal text-gray-900 mb-6">${data.keyword}</h1>
             
-            <div class="space-y-4 max-w-3xl font-sans text-[13px]">
-                <div class="flex items-start">
-                    <span class="w-28 flex-shrink-0 font-bold text-gray-900">Type</span>
-                    <span class="text-gray-700">${data.strict_name || 'unassigned'}</span>
-                </div>
+            tbody.innerHTML = data.map(item => {
+                const typeName = item.type || 'command';
+                const typeClass = getTypeClass(typeName);
+                const syntax = item.syntax || '';
                 
-                <div class="flex items-start">
-                    <span class="w-28 flex-shrink-0 font-bold text-gray-900">Syntax</span>
-                    <div class="flex-1 bg-gray-50 border border-gray-200 rounded p-2.5 font-mono text-[12px] text-gray-800 whitespace-pre-wrap">${data.syntax || '-'}</div>
-                </div>
+                return '<tr data-entry-id="' + item.id + '">' +
+                    '<td class="entry-name">' + escapeHtml(item.keyword || '') + '</td>' +
+                    '<td><span class="type-badge ' + typeClass + '">' + escapeHtml(typeName) + '</span></td>' +
+                    '<td class="text-muted">' + escapeHtml(syntax) + '</td>' +
+                '</tr>';
+            }).join('');
+        }
 
-                <div class="flex items-start">
-                    <span class="w-28 flex-shrink-0 font-bold text-gray-900">Summary</span>
-                    <span class="flex-1 text-gray-700 leading-relaxed">${data.description || 'No summary overview provided.'}</span>
-                </div>
+        /**
+         * Get CSS class for entry type
+         */
+        function getTypeClass(type) {
+            const t = (type || '').toLowerCase();
+            if (t.includes('command') || t.includes('dialog')) return 'badge-command';
+            if (t.includes('function')) return 'badge-function';
+            if (t.includes('property')) return 'badge-property';
+            if (t.includes('constant')) return 'badge-constant';
+            return 'badge-command';
+        }
 
-                <div class="flex items-start">
-                    <span class="w-28 flex-shrink-0 font-bold text-gray-900">Examples</span>
-                    <div class="flex-1 space-y-2">
-                        <div class="bg-gray-50 border border-gray-200 rounded p-2.5 font-mono text-[12px] text-purple-700 whitespace-pre-wrap">${data.example || '// No validation use cases verified.'}</div>
-                    </div>
-                </div>
-            </div>
-        `;
-    } catch (err) {
-        console.error("Error generating view pane:", err);
-        detailsContainer.innerHTML = `<div class="text-red-500 font-sans bg-red-50 p-4 border border-red-200 rounded">⚠️ Error generating view pane: ${err.message}</div>`;
-    }
-}
-        window.onload = loadDictionary;
+        /**
+         * Select entry by index
+         */
+        function selectEntry(index) {
+            const entries = document.querySelectorAll('#table_list tbody tr');
+            if (index < 0 || index >= entries.length) return;
+            
+            // Remove highlight from all
+            entries.forEach(tr => tr.classList.remove('info'));
+            
+            // Highlight selected
+            entries[index].classList.add('info');
+            
+            const item = tState.filtered_data[index];
+            if (item) {
+                renderEntryDetails(item);
+            }
+        }
+
+        /**
+         * Render entry details (LC IDE style)
+         */
+        function renderEntryDetails(item) {
+            const content = document.getElementById('api_entry');
+            if (!content) return;
+            
+            const type = item.type || 'command';
+            const typeClass = getTypeClass(type);
+            
+            // Build HTML matching LC IDE format
+            let html = '<div class="well well-sm"><strong>Type:</strong> <span class="type-badge ' + typeClass + '">' + escapeHtml(type) + '</span></div>';
+            
+            // Syntax
+            if (item.syntax) {
+                html += '<div style="margin-bottom: 15px;"><strong style="color: #337ab7;">Syntax:</strong><br>' +
+                    '<div class="syntax-block">' + escapeHtml(item.syntax) + '</div></div>';
+            }
+            
+            // LiveCode Syntax (if different from SE syntax)
+            if (item.livecode_syntax && item.livecode_syntax !== item.syntax) {
+                html += '<div style="margin-bottom: 15px;"><strong style="color: #337ab7;">LiveCode Syntax:</strong><br>' +
+                    '<div class="syntax-block">' + escapeHtml(item.livecode_syntax) + '</div></div>';
+            }
+            
+            // Description
+            if (item.description || item.summary) {
+                const desc = (item.description || item.summary || '').replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>');
+                html += '<div style="margin-bottom: 15px;"><strong style="color: #337ab7;">Description:</strong>' +
+                    '<div style="margin: 8px 0 0 0;">' + desc + '</div></div>';
+            }
+            
+            // Parameters
+            let params = [];
+            try {
+                params = JSON.parse(item.parameters || '[]');
+            } catch(e) {}
+            
+            if (params.length > 0) {
+                html += '<div style="margin-bottom: 15px;"><strong style="color: #337ab7;">Parameters:</strong>' +
+                    '<table class="table table-bordered table-condensed" style="font-size: 12px; margin: 8px 0 0 0;">' +
+                    '<tbody>' + params.map(p => 
+                        '<tr><td style="width: 40%; font-weight: 500;">' + escapeHtml(p.name || '') + 
+                        '</td><td>' + escapeHtml(p.description || '') + '</td></tr>'
+                    ).join('') +
+                    '</tbody></table></div>';
+            }
+            
+            // Return Value
+            if (item.return_value) {
+                html += '<div style="margin-bottom: 15px;"><strong style="color: #337ab7;">Return Value:</strong>' +
+                    '<div style="margin: 8px 0 0 0;">' + escapeHtml(item.return_value) + '</div></div>';
+            }
+            
+            // Examples
+            let examples = [];
+            try {
+                examples = JSON.parse(item.example || '[]');
+            } catch(e) {}
+            
+            if (examples.length > 0) {
+                html += '<div style="margin-bottom: 15px;"><strong style="color: #337ab7;">Examples:</strong>' +
+                    '<div class="example-block">' + examples.map(e => 
+                        escapeHtml(typeof e === 'string' ? e : e.content || e)
+                    ).join('<div style="margin-bottom: 8px;"></div>') + '</div></div>';
+            }
+            
+            content.innerHTML = html;
+            document.getElementById('lc_entry_body').style.display = 'block';
+        }
+
+        /**
+         * Escape HTML special characters
+         */
+        function escapeHtml(str) {
+            return String(str || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        // Handle table row clicks
+        document.getElementById('table_list').addEventListener('click', function(e) {
+            const tr = e.target.closest('tr');
+            if (!tr) return;
+            
+            const index = Array.from(tr.parentNode.children).indexOf(tr);
+            if (index >= 0) {
+                selectEntry(index);
+            }
+        });
     </script>
 </body>
 </html>
